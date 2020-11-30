@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from Reservation.models import Room, Reservation, Bill, Service
+from Reservation.models import Room, Reservation, Bill, Service, UserServices
 
 
 class RoomSerializer(serializers.ModelSerializer):
@@ -11,8 +11,13 @@ class RoomSerializer(serializers.ModelSerializer):
 class ServiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Service
-        fields = ["service_name", "cost", "is_paid", "guest"]
+        fields = ["id","service_name", "cost"]
 
+class UserServicesSerializer(serializers.ModelSerializer):
+    service = ServiceSerializer(read_only=True)
+    class Meta:
+        model = UserServices
+        fields = ["service", "guest", "is_paid"]
 
 class ReservationSerializer(serializers.ModelSerializer):
     room = RoomSerializer(read_only=True)
