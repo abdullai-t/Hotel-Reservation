@@ -5,6 +5,7 @@ from Accounts.models import User
 
 class Room(models.Model):
     name = models.CharField(max_length=50, null=False, blank=False)
+    image = models.ImageField(upload_to='room_images',blank=True, null=True)
     number_of_beds = models.IntegerField(null=False, blank=False)
     type = models.CharField(max_length=50, null=False, blank=False)
     bed_size = models.CharField(max_length=50, null=False, blank=False)
@@ -51,7 +52,7 @@ class Bill(models.Model):
     is_paid = models.BooleanField(default=False)
     payment_mode = models.CharField(max_length=20, null=False, blank=False)
     reservation = models.ForeignKey(Reservation, on_delete=models.CASCADE, blank=True, null=True)
-    service = models.ForeignKey(Service, on_delete=models.CASCADE, blank=True, null=True)
+    services = models.ForeignKey(UserServices, on_delete=models.CASCADE, blank=True, null=True)
     staff = models.OneToOneField(User, on_delete=models.CASCADE, blank=True, null=True)
 
     def __str__(self):

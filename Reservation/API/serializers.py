@@ -5,7 +5,7 @@ from Reservation.models import Room, Reservation, Bill, Service, UserServices
 class RoomSerializer(serializers.ModelSerializer):
     class Meta:
         model = Room
-        fields = ["id","name", "number_of_beds", "type", "bed_size", "cost", "is_available"]
+        fields = ["id","name", "number_of_beds", "type", "bed_size", "cost", "is_available","image"]
 
 
 class ServiceSerializer(serializers.ModelSerializer):

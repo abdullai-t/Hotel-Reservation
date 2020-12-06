@@ -13,6 +13,17 @@ from Reservation.API.serializers import RoomSerializer, ReservationSerializer, S
 from Reservation.models import Room, Reservation, Service, UserServices
 
 
+# http://127.0.0.1:8000/api/reservation/initial/
+@api_view(['GET', ])
+def initial(request):
+    data = {}
+    rooms = RoomSerializer(Room.objects.all(), many=True)
+    services = ServiceSerializer(Service.objects.all(), many=True)
+    data["rooms"] = rooms.data
+    data["services"] = services.data
+    return Response(data)
+
+
 # ######################### Room requests ########################################################
 
 # admin interactions
@@ -41,8 +52,6 @@ def create_room(request):
 class get_rooms(ListAPIView):
     queryset = Room.objects.all()
     serializer_class = RoomSerializer
-    # authentication_classes = (TokenAuthentication,)
-    # permission_classes = (IsAuthenticated,)
     filter_backends = (SearchFilter, OrderingFilter)
     search_fields = ("name", "number_of_beds", "type", "bed_size", "cost", "is_available")
 
@@ -306,7 +315,6 @@ def get_specific_user_service(request):
         return Response(status=status.HTTP_404_NOT_FOUND)
     serializer = UserServicesSerializer(user_services, many=True)
     return Response(serializer.data)
-
 
 # ######################### Bill requests ########################################################
 
