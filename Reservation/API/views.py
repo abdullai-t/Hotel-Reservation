@@ -300,8 +300,6 @@ class get_user_service(ListAPIView):
     serializer_class = UserServicesSerializer
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
-    # filter_backends = (SearchFilter, OrderingFilter)
-    # search_fields = ("guest__username", "is_paid", "service__service_name")
 
 
 # http://127.0.0.1:8000/api/reservation/specific/user-services/
