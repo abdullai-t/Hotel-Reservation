@@ -9,7 +9,8 @@ from rest_framework.response import Response
 from rest_framework.status import HTTP_400_BAD_REQUEST
 
 from Accounts.models import User
-from Reservation.API.serializers import RoomSerializer, ReservationSerializer, ServiceSerializer, UserServicesSerializer
+from Reservation.API.serializers import RoomSerializer, ReservationSerializer, ServiceSerializer, \
+    UserServicesSerializer, BillSerializer
 from Reservation.models import Room, Reservation, Service, UserServices
 
 
@@ -108,21 +109,21 @@ def delete_room(request, name):
 
 # ######################### Reservation requests ########################################################
 # http://127.0.0.1:8000/api/reservation/add/reservation/
-@api_view(['POST', ])
-@authentication_classes([TokenAuthentication, ])
-@permission_classes([IsAuthenticated])
-def add_reservation(request):
-    if request.method == "POST":
-        guest = User.objects.get(username=request.user)
-        room = Room.objects.get(pk=request.data["room"])
-        serializer = ReservationSerializer(data=request.data)
-        data = {}
-        if serializer.is_valid():
-            serializer.save(guest=guest, room=room)
-            data["data"] = serializer.data
-        else:
-            data["failure"] = "unable to Add reservation please check the form"
-        return Response(data)
+# @api_view(['POST', ])
+# @authentication_classes([TokenAuthentication, ])
+# @permission_classes([IsAuthenticated])
+# def add_reservation(request):
+#     if request.method == "POST":
+#         guest = User.objects.get(username=request.user)
+#         room = Room.objects.get(pk=request.data["room"])
+#         serializer = ReservationSerializer(data=request.data)
+#         data = {}
+#         if serializer.is_valid():
+#             serializer.save(guest=guest, room=room)
+#             data["data"] = serializer.data
+#         else:
+#             data["failure"] = "unable to Add reservation please check the form"
+#         return Response(data)
 
 
 # get all reservations
@@ -258,20 +259,20 @@ def delete_service(request, name):
 # ********************************************** user
 # services************************************************************* this refers all the services a guest will opt
 # for alongside his or her reservation http://127.0.0.1:8000/api/reservation/add-user/service/
-@api_view(['POST', ])
-@authentication_classes([TokenAuthentication, ])
-@permission_classes([IsAuthenticated])
-def add_service(request):
-    guest = User.objects.get(username=request.user)
-    service = Service.objects.get(pk=request.data["service"])
-    serializer = UserServicesSerializer(data=request.data)
-    data = {}
-    if serializer.is_valid():
-        serializer.save(service=service, guest=guest)
-        data["success"] = "successfully added"
-    else:
-        data["failure"] = "unable to add service please check the form"
-    return Response(data=data)
+# @api_view(['POST', ])
+# @authentication_classes([TokenAuthentication, ])
+# @permission_classes([IsAuthenticated])
+# def add_service(request):
+#     guest = User.objects.get(username=request.user)
+#     service = Service.objects.get(pk=request.data["service"])
+#     serializer = UserServicesSerializer(data=request.data)
+#     data = {}
+#     if serializer.is_valid():
+#         serializer.save(service=service, guest=guest)
+#         data["success"] = "successfully added"
+#     else:
+#         data["failure"] = "unable to add service please check the form"
+#     return Response(data=data)
 
 
 # delete user service
@@ -314,8 +315,46 @@ def get_specific_user_service(request):
     serializer = UserServicesSerializer(user_services, many=True)
     return Response(serializer.data)
 
+
 # ######################### Bill requests ########################################################
 
 # add
 # get all and specif user
 # delete
+# --------------------------------- functions--------------------
+def find_service(item):
+    service = Service.objects.get(service_name=item)
+    return service
+
+
+def add_reservation(reservation, user):
+    guest = User.objects.get(username=user)
+    room = Room.objects.get(pk=reservation["room"])
+    serializer = ReservationSerializer(data=reservation)
+    if serializer.is_valid():
+        serializer.save(guest=guest, room=room)
+        reservation = Reservation.objects.filter(room__name=room.name, guest__username=user)
+    return (reservation)
+
+
+def add_user_service(services, user):
+    guest = User.objects.get(username=user)
+    for x in services:
+        UserServices.objects.get_or_create(guest=guest, service=find_service(x["service_name"]))
+    services = UserServices.objects.filter(guest__username=user).all()
+    return (services)
+
+
+# --------------------------------------------------------------
+@api_view(['POST', ])
+@authentication_classes([TokenAuthentication, ])
+@permission_classes([IsAuthenticated])
+def bill(request):
+    services = request.data["serviceObj"]
+    reservation = request.data["reservationObj"]
+    reservation = add_reservation(reservation, request.user)
+    services = add_user_service(services, request.user)
+    serializer = BillSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save(reservation=reservation, services=services)
+        return Response({"success": "successful done"})

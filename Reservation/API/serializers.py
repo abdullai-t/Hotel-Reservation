@@ -28,7 +28,7 @@ class ReservationSerializer(serializers.ModelSerializer):
 
 
 class BillSerializer(serializers.ModelSerializer):
-    service = ServiceSerializer(read_only=True)
+    service = ServiceSerializer(read_only=True, many=True)
     reservation = ReservationSerializer(read_only=True)
 
     class Meta:

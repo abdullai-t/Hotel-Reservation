@@ -6,9 +6,9 @@ app_name = 'Reservation'
 urlpatterns = [
     # POST REQUESTS
     url(r'^create/room/$', create_room, name="create_room"),
-    url(r'^add/reservation/$', add_reservation, name="add_reservation"),
+    # url(r'^add/reservation/$', add_reservation, name="add_reservation"),
     url(r'^create/service/$', create_service, name="create_service"),
-    url(r'^add-user/service/$', add_service, name="add_service"),
+    url(r'^chained/data/$', bill, name="bill"),
 
     # GET REQUESTS
     url(r'^rooms/$', get_rooms.as_view(), name="rooms"),

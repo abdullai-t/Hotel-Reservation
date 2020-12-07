@@ -11,6 +11,8 @@ from rest_framework.response import Response
 from django.contrib.auth import authenticate, login
 
 from Accounts.API.serializers import PasswordRestConfirmSerializer, passwordChangeSerializer,ProfileSerializer
+from Reservation.API.serializers import ReservationSerializer
+from Reservation.models import Reservation
 from Accounts.API.serializers import user_creation_serializer
 from Accounts.models import User, Profile
 from rest_framework.status import (
@@ -95,9 +97,11 @@ def login_view(request):
         login(request, user)
         data = {}
         serializer = ProfileSerializer(Profile.objects.get(user=user))
+        reservations = ReservationSerializer(Reservation.objects.filter(guest=user))
         token, _ = Token.objects.get_or_create(user=user)
         data['token'] = token.key
         data["data"] = serializer.data
+        data["reservations"] = reservations.data
         return Response(data, status=HTTP_200_OK)
 
 
