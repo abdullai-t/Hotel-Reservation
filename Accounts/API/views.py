@@ -97,11 +97,12 @@ def login_view(request):
         login(request, user)
         data = {}
         serializer = ProfileSerializer(Profile.objects.get(user=user))
-        reservations = ReservationSerializer(Reservation.objects.filter(guest=user))
+        reservations = Reservation.objects.filter(guest=user)
         token, _ = Token.objects.get_or_create(user=user)
         data['token'] = token.key
         data["data"] = serializer.data
-        data["reservations"] = reservations.data
+        if reservations:
+           data["reservations"] = ReservationSerializer(reservations, many=True).data
         return Response(data, status=HTTP_200_OK)
 
 
@@ -133,7 +134,7 @@ def PasswordRestView(request):
             token = Token.objects.get(user=user)
             # email template('email/email_body.html') with parameters of user, uid, token .........
             msg_html = render_to_string('email/email_body.html',
-                                        {'user': user, 'domain': "http://127.0.0.1:8000",
+                                        {'user': user, 'domain': "http://localhost:3000",
                                          'site_name': 'Hotel Reservation', 'uid': uid, 'token': token})
 
             # send email function

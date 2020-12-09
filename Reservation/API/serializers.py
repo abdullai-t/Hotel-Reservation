@@ -17,7 +17,7 @@ class UserServicesSerializer(serializers.ModelSerializer):
     service = ServiceSerializer(read_only=True)
     class Meta:
         model = UserServices
-        fields = ["service", "guest", "is_paid"]
+        fields = ["id","service", "guest", "reservation"]
 
 class ReservationSerializer(serializers.ModelSerializer):
     room = RoomSerializer(read_only=True)
@@ -28,9 +28,8 @@ class ReservationSerializer(serializers.ModelSerializer):
 
 
 class BillSerializer(serializers.ModelSerializer):
-    service = ServiceSerializer(read_only=True, many=True)
     reservation = ReservationSerializer(read_only=True)
 
     class Meta:
         model = Bill
-        fields = ["total_cost", "is_paid", "payment_mode", "reservation", "staff", "service"]
+        fields = ["id","total_cost", "is_paid", "payment_mode", "reservation"]

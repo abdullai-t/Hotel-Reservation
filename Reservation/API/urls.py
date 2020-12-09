@@ -12,6 +12,7 @@ urlpatterns = [
 
     # GET REQUESTS
     url(r'^rooms/$', get_rooms.as_view(), name="rooms"),
+    url(r'^bills/$', get_Bill.as_view(), name="bills"),
     url(r'^initial/$', initial, name="initial"),
     url(r'^reservations/$', get_reservations.as_view(), name="get_reservations"),
     url(r'^services/$', get_services.as_view(), name="get_services"),

@@ -11,7 +11,7 @@ from rest_framework.status import HTTP_400_BAD_REQUEST
 from Accounts.models import User
 from Reservation.API.serializers import RoomSerializer, ReservationSerializer, ServiceSerializer, \
     UserServicesSerializer, BillSerializer
-from Reservation.models import Room, Reservation, Service, UserServices
+from Reservation.models import Room, Reservation, Service, UserServices, Bill
 
 
 # http://127.0.0.1:8000/api/reservation/initial/
@@ -256,25 +256,6 @@ def delete_service(request, name):
         return Response(data=data)
 
 
-# ********************************************** user
-# services************************************************************* this refers all the services a guest will opt
-# for alongside his or her reservation http://127.0.0.1:8000/api/reservation/add-user/service/
-# @api_view(['POST', ])
-# @authentication_classes([TokenAuthentication, ])
-# @permission_classes([IsAuthenticated])
-# def add_service(request):
-#     guest = User.objects.get(username=request.user)
-#     service = Service.objects.get(pk=request.data["service"])
-#     serializer = UserServicesSerializer(data=request.data)
-#     data = {}
-#     if serializer.is_valid():
-#         serializer.save(service=service, guest=guest)
-#         data["success"] = "successfully added"
-#     else:
-#         data["failure"] = "unable to add service please check the form"
-#     return Response(data=data)
-
-
 # delete user service
 # http://127.0.0.1:8000/api/reservation/delete/user-service/{name of service}/
 @api_view(["DELETE", ])
@@ -333,16 +314,17 @@ def add_reservation(reservation, user):
     serializer = ReservationSerializer(data=reservation)
     if serializer.is_valid():
         serializer.save(guest=guest, room=room)
-        reservation = Reservation.objects.filter(room__name=room.name, guest__username=user)
-    return (reservation)
+        reservation = Reservation.objects.get(room__name=room.name, guest__username=user)
+        return (reservation, reservation.id)
 
 
-def add_user_service(services, user):
+def add_user_service(services, user, reservation_id):
     guest = User.objects.get(username=user)
+    reservation = Reservation.objects.get(pk=reservation_id)
     for x in services:
-        UserServices.objects.get_or_create(guest=guest, service=find_service(x["service_name"]))
-    services = UserServices.objects.filter(guest__username=user).all()
-    return (services)
+        UserServices.objects.get_or_create(guest=guest, reservation=reservation, service=find_service(x["service_name"]))
+    services = UserServices.objects.filter(guest=user, reservation_id=reservation_id)
+    return services
 
 
 # --------------------------------------------------------------
@@ -352,9 +334,18 @@ def add_user_service(services, user):
 def bill(request):
     services = request.data["serviceObj"]
     reservation = request.data["reservationObj"]
-    reservation = add_reservation(reservation, request.user)
-    services = add_user_service(services, request.user)
+    my_reservation, id = add_reservation(reservation, request.user)
+    add_user_service(services, request.user, id)
     serializer = BillSerializer(data=request.data)
     if serializer.is_valid():
-        serializer.save(reservation=reservation, services=services)
+        serializer.save(reservation=my_reservation)
         return Response({"success": "successful done"})
+
+    else:
+        print(serializer.errors)
+        return Response({"Failure": "form invalid"})
+
+
+class get_Bill(ListAPIView):
+    queryset = Bill.objects.all()
+    serializer_class = BillSerializer
