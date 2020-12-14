@@ -12,17 +12,19 @@ urlpatterns = [
 
     # GET REQUESTS
     url(r'^rooms/$', get_rooms.as_view(), name="rooms"),
-    url(r'^bills/$', get_Bill.as_view(), name="bills"),
+    url(r'^my/reservations/$', my_reservations, name="my_reservations"),
+    # url(r'^bills/$', get_Bill.as_view(), name="bills"),
     url(r'^initial/$', initial, name="initial"),
-    url(r'^reservations/$', get_reservations.as_view(), name="get_reservations"),
-    url(r'^services/$', get_services.as_view(), name="get_services"),
+    # url(r'^reservations/$', get_reservations.as_view(), name="get_reservations"),
+    url(r'^dashboard/$', dashboard_view, name="dashboard_view"),
     url(r'^user-services/$', get_user_service.as_view(), name="get_user_service"),
     url(r'^specific/user-services/$', get_specific_user_service, name="get_specific_user_service"),
 
     # UPDATE REQUESTS
-    url(r'^update/room/(?P<name>[\w\s-]+)/$', update_room_info, name="update_room_info"),
+    url(r'^update/room/(?P<id>[\w\s-]+)/$', update_room_info, name="update_room_info"),
     url(r'^update/reservation/(?P<id>[\w-]+)/$', update_reservation, name="update_reservation"),
-    url(r'^update/service/(?P<name>[\w\s-]+)/$', update_service, name="update_service"),
+    url(r'^update/service/(?P<id>[\w\s-]+)/$', update_service, name="update_service"),
+    url(r'^update/bill/(?P<id>[\w\s-]+)/$', update_bill, name="update_bill"),
 
     # DELETE REQUESTS
     url(r'^delete/room/(?P<name>[\w\s-]+)/$', delete_room, name="delete_room"),

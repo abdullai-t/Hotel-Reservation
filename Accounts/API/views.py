@@ -10,7 +10,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.contrib.auth import authenticate, login
 
-from Accounts.API.serializers import PasswordRestConfirmSerializer, passwordChangeSerializer,ProfileSerializer
+from Accounts.API.serializers import PasswordRestConfirmSerializer, passwordChangeSerializer, ProfileSerializer
 from Reservation.API.serializers import ReservationSerializer
 from Reservation.models import Reservation
 from Accounts.API.serializers import user_creation_serializer
@@ -20,6 +20,12 @@ from rest_framework.status import (
     HTTP_404_NOT_FOUND,
     HTTP_200_OK
 )
+import string
+import random
+
+
+def code_generator(size=4, chars=string.ascii_uppercase + string.digits):
+    return ''.join(random.choice(chars) for _ in range(size))
 
 
 @api_view(['POST'])
@@ -69,8 +75,9 @@ def manager_registration(request):
                 email=request.data.get("email"),
                 homeAddress=request.data.get("address"),
                 phone=request.data.get("phone"),
+                idNumber="LCS" + code_generator()
             )
-            profile.user=account
+            profile.user = account
             profile.save()
             serializer = ProfileSerializer(profile)
             token = Token.objects.get(user=account).key
@@ -102,8 +109,31 @@ def login_view(request):
         data['token'] = token.key
         data["data"] = serializer.data
         if reservations:
-           data["reservations"] = ReservationSerializer(reservations, many=True).data
+            data["reservations"] = ReservationSerializer(reservations, many=True).data
         return Response(data, status=HTTP_200_OK)
+
+
+@api_view(['Post', ])
+def admin_login(request):
+    email = request.data.get("email")
+    password = request.data.get("password")
+    if email is None or password is None:
+        return Response({'error': 'Please provide both username and password'}, status=HTTP_400_BAD_REQUEST)
+    user = authenticate(request, email=email, password=password)
+    if user.is_staff or user.is_admin:
+        data = {}
+        profile = Profile.objects.get(user=user)
+        if not profile:
+            token = Token.objects.get(user=user).key
+            data['token'] = token
+        else:
+            serializer = ProfileSerializer(profile)
+            data["data"] = serializer.data
+            token = Token.objects.get(user=user).key
+            data['token'] = token
+        return Response(data, status=HTTP_200_OK)
+    else:
+        return Response({'error': 'Invalid Credentials'}, status=HTTP_404_NOT_FOUND)
 
 
 # #####################password reset view############################################
@@ -134,8 +164,8 @@ def PasswordRestView(request):
             token = Token.objects.get(user=user)
             # email template('email/email_body.html') with parameters of user, uid, token .........
             msg_html = render_to_string('email/email_body.html',
-                                        {'user': user, 'domain': "http://localhost:3000",
-                                         'site_name': 'Hotel Reservation', 'uid': uid, 'token': token})
+                                        {'user': user, 'domain': "https://luxcom-hotel.web.app",
+                                         'site_name': 'Luxcom Hotel', 'uid': uid, 'token': token})
 
             # send email function
             send_mail(
@@ -215,16 +245,17 @@ def passwordChangeView(request):
         data = serializer.error
     return Response(data)
 
+
 # user profile view
 @api_view(['PATCH', 'GET'])
 @authentication_classes([TokenAuthentication, ])
 @permission_classes([IsAuthenticated])
 def profile(request):
     if request.method == 'GET':
-        data={}
+        data = {}
         profile = Profile.objects.filter(user=request.user)
         if profile:
-            serializer = ProfileSerializer(profile,many=True)
+            serializer = ProfileSerializer(profile, many=True)
             data["data"] = serializer.data
         else:
             data["error"] = "the data is invalid"

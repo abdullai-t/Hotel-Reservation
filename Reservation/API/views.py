@@ -8,11 +8,13 @@ from rest_framework.response import Response
 
 from rest_framework.status import HTTP_400_BAD_REQUEST
 
-from Accounts.models import User
+from Accounts.API.serializers import ProfileSerializer
+from Accounts.models import User, Profile
 from Reservation.API.serializers import RoomSerializer, ReservationSerializer, ServiceSerializer, \
     UserServicesSerializer, BillSerializer
 from Reservation.models import Room, Reservation, Service, UserServices, Bill
-
+import string
+import random
 
 # http://127.0.0.1:8000/api/reservation/initial/
 @api_view(['GET', ])
@@ -34,14 +36,13 @@ def initial(request):
 @permission_classes([IsAuthenticated])
 def create_room(request):
     creator = User.objects.get(username=request.user)
-    if not creator.is_manager:
+    if not creator.is_staff:
         return Response({'error': 'You donot have the authorization to perform this task'}, status=HTTP_400_BAD_REQUEST)
     else:
         serializer = RoomSerializer(data=request.data)
         data = {}
         if serializer.is_valid():
-            is_available = False if int(request.data["number_of_beds"]) < 1 else True
-            serializer.save(is_available=is_available)
+            serializer.save()
             data["success"] = "room successfully created"
         else:
             data["failure"] = "unable to create room please check the form"
@@ -62,20 +63,20 @@ class get_rooms(ListAPIView):
 @api_view(['PATCH'])
 @authentication_classes([TokenAuthentication, ])
 @permission_classes([IsAuthenticated])
-def update_room_info(request, name):
+def update_room_info(request, id):
     creator = User.objects.get(username=request.user)
     if not creator.is_manager:
         return Response({'error': 'You do not have the authorization to perform this task'},
                         status=HTTP_400_BAD_REQUEST)
     else:
-        room = Room.objects.get(name=name)
+        room = Room.objects.get(pk=id)
         serializer = RoomSerializer(room, request.data, partial=True)
         data = {}
         if serializer.is_valid():
             serializer.save()
             is_available = False if room.number_of_beds < 1 else True
             serializer.save(is_available=is_available)
-            data["data"] = serializer.data
+            data["success"] = "room data succesfully updated"
         else:
             data["failure"] = "we could not save this rooms info update"
 
@@ -94,7 +95,7 @@ def delete_room(request, name):
         return Response({'error': ' The room you want to delete does not exist'}, status=status.HTTP_404_NOT_FOUND)
 
     creator = User.objects.get(username=request.user)
-    if not creator.is_manager:
+    if not creator.is_manager or not creator.is_staff:
         return Response({'error': 'You do not have the authorization to perform this task'},
                         status=HTTP_400_BAD_REQUEST)
     else:
@@ -206,10 +207,10 @@ def create_service(request):
 @api_view(["PATCH", ])
 @authentication_classes([TokenAuthentication, ])
 @permission_classes([IsAuthenticated])
-def update_service(request, name):
+def update_service(request, id):
     data = {}
     try:
-        service = Service.objects.get(service_name=name)
+        service = Service.objects.get(pk=id)
     except Service.DoesNotExist:
         return Response({'error': ' The Service you want to update does not exist'},
                         status=status.HTTP_404_NOT_FOUND)
@@ -305,16 +306,18 @@ def get_specific_user_service(request):
 # --------------------------------- functions--------------------
 def find_service(item):
     service = Service.objects.get(service_name=item)
-    return service
+    return (service)
 
+def code_generator(size=7, chars=string.ascii_uppercase + string.digits):
+   return ''.join(random.choice(chars) for _ in range(size))
 
 def add_reservation(reservation, user):
-    guest = User.objects.get(username=user)
+    guest = Profile.objects.get(user__username=user)
     room = Room.objects.get(pk=reservation["room"])
     serializer = ReservationSerializer(data=reservation)
     if serializer.is_valid():
-        serializer.save(guest=guest, room=room)
-        reservation = Reservation.objects.get(room__name=room.name, guest__username=user)
+        serializer.save(guest=guest, room=room, booking_code=code_generator())
+        reservation = Reservation.objects.get(room__pk=reservation["room"], guest__user__username=user, date=serializer.data["date"])
         return (reservation, reservation.id)
 
 
@@ -337,9 +340,11 @@ def bill(request):
     my_reservation, id = add_reservation(reservation, request.user)
     add_user_service(services, request.user, id)
     serializer = BillSerializer(data=request.data)
+    data = {}
     if serializer.is_valid():
         serializer.save(reservation=my_reservation)
-        return Response({"success": "successful done"})
+        data["reservationID"] = serializer.data["id"]
+        return Response(data)
 
     else:
         print(serializer.errors)
@@ -349,3 +354,56 @@ def bill(request):
 class get_Bill(ListAPIView):
     queryset = Bill.objects.all()
     serializer_class = BillSerializer
+
+@api_view(["PATCH", ])
+@authentication_classes([TokenAuthentication, ])
+@permission_classes([IsAuthenticated])
+def update_bill(request, id):
+    data = {}
+    try:
+        bill = Bill.objects.get(pk=id)
+    except Bill.DoesNotExist:
+        return Response({'error': ' The Bill you want to update does not exist'},
+                        status=status.HTTP_404_NOT_FOUND)
+    serializer = BillSerializer(bill, request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save(is_paid=True)
+        data["success"] = "bill successfully updated"
+    else:
+        data["failure"] = "we could not save this Service info update"
+    return Response(data)
+
+@api_view(["GET", ])
+@authentication_classes([TokenAuthentication, ])
+@permission_classes([IsAuthenticated])
+def my_reservations(request):
+    data = {}
+    try:
+        bill = Bill.objects.filter(reservation__guest__user__username=request.user)
+    except Bill.DoesNotExist:
+        return Response({'error': ' The Bill you want to update does not exist'},
+                        status=status.HTTP_404_NOT_FOUND)
+    serializer = BillSerializer(bill, many=True)
+    data["reservations"] = serializer.data
+    return Response(data)
+
+
+@api_view(['GET', ])
+def dashboard_view(request):
+    guests_count = User.objects.filter(is_superuser=False, is_staff=False, is_manager=False).count()
+    room_count = Room.objects.all().count()
+    reservation_count = Reservation.objects.all().count()
+    services = ServiceSerializer(Service.objects.all(), many=True).data
+    rooms = RoomSerializer(Room.objects.all(), many=True).data
+    bills = BillSerializer(Bill.objects.all(), many=True).data
+    staff = ProfileSerializer(User.objects.filter(is_staff=True, is_manager=True), many=True).data
+    data = {}
+    data['guests_count'] = guests_count
+    data['room_count'] = room_count
+    data['reservation_count'] = reservation_count
+    data['services'] = services
+    data['staff'] = staff
+    data['rooms'] = rooms
+    data['bills'] = bills
+
+    return Response(data)
