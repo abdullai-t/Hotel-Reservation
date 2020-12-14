@@ -25,7 +25,7 @@ class Service(models.Model):
 
 class Reservation(models.Model):
     date = models.DateTimeField(auto_now_add=True)
-    booking_code = models.CharField(max_length=50, null=False, blank=False)
+    booking_code = models.CharField(max_length=50, null=True, blank=True)
     check_in_date = models.DateField()
     check_out_date = models.DateField()
     number_of_adult = models.IntegerField(null=False, blank=False)

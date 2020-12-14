@@ -104,7 +104,7 @@ def login_view(request):
         login(request, user)
         data = {}
         serializer = ProfileSerializer(Profile.objects.get(user=user))
-        reservations = Reservation.objects.filter(guest=user)
+        reservations = Reservation.objects.filter(guest__user__username=user)
         token, _ = Token.objects.get_or_create(user=user)
         data['token'] = token.key
         data["data"] = serializer.data
@@ -171,7 +171,7 @@ def PasswordRestView(request):
             send_mail(
                 'Password reset for Hostels',
                 "",
-                'some@sender.com',
+                'luxcomh@gmail.com',
                 [user.email],
                 html_message=msg_html,
             )

@@ -151,5 +151,5 @@ EMAIL_HOST_USER = 'luxcomh@gmail.com'
 EMAIL_HOST_PASSWORD = 'samsung600' #past the key or password app here
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-DEFAULT_FROM_EMAIL = 'default from email'
+DEFAULT_FROM_EMAIL = 'luxcomh@gmail.com'
 django_heroku.settings(locals())

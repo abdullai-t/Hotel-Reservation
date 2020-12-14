@@ -149,16 +149,13 @@ def delete_reservation(request, id):
     except Reservation.DoesNotExist:
         return Response({'error': ' The Reservation you want to delete does not exist'},
                         status=status.HTTP_404_NOT_FOUND)
-
-    creator = User.objects.get(username=request.user)
-    if reservation[0].guest == request.user or creator.is_manager == True:
-        data = {}
-        delete_operation = reservation.delete()
-        if delete_operation:
-            data["success"] = "room successfully deleted"
-        else:
-            data["failure"] = "unable to delete room"
-        return Response(data=data)
+    data = {}
+    delete_operation = reservation.delete()
+    if delete_operation:
+        data["success"] = "room successfully deleted"
+    else:
+        data["failure"] = "unable to delete room"
+    return Response(data)
 
 
 # update Reservation
@@ -308,7 +305,7 @@ def find_service(item):
     service = Service.objects.get(service_name=item)
     return (service)
 
-def code_generator(size=7, chars=string.ascii_uppercase + string.digits):
+def code_generator(size=5, chars=string.ascii_uppercase + string.digits):
    return ''.join(random.choice(chars) for _ in range(size))
 
 def add_reservation(reservation, user):
@@ -316,7 +313,8 @@ def add_reservation(reservation, user):
     room = Room.objects.get(pk=reservation["room"])
     serializer = ReservationSerializer(data=reservation)
     if serializer.is_valid():
-        serializer.save(guest=guest, room=room, booking_code=code_generator())
+        book_code = "LC"+code_generator()
+        serializer.save(guest=guest, room=room, booking_code=book_code)
         reservation = Reservation.objects.get(room__pk=reservation["room"], guest__user__username=user, date=serializer.data["date"])
         return (reservation, reservation.id)
 
@@ -367,7 +365,8 @@ def update_bill(request, id):
                         status=status.HTTP_404_NOT_FOUND)
     serializer = BillSerializer(bill, request.data, partial=True)
     if serializer.is_valid():
-        serializer.save(is_paid=True)
+        paid =  True if request.data.get("payment_mode") or bill.is_paid else False
+        serializer.save(is_paid=paid)
         data["success"] = "bill successfully updated"
     else:
         data["failure"] = "we could not save this Service info update"
