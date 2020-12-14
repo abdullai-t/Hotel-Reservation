@@ -24,9 +24,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'um4or3amnfl-a@pi-)1h_a)mscfvo5q$d49zy%pzq6$k(#w5w2'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 # Application definition
 
@@ -142,7 +142,8 @@ STATIC_URL = '/static/'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / "media"
-CORS_ORIGIN_WHITELIST = ['https://localhost:3000']
+CORS_ORIGIN_WHITELIST = ['https://localhost:3000','https://luxcom-hotel.web.app']
+CORS_ORIGIN_ALLOW_ALL = True
 # email setup
 # EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
