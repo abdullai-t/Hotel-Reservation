@@ -142,7 +142,7 @@ STATIC_URL = '/static/'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / "media"
-CORS_ORIGIN_WHITELIST = ['https://localhost:3000','https://luxcom-hotel.web.app']
+# CORS_ORIGIN_WHITELIST = ['https://localhost:3000','https://luxcom-hotel.web.app']
 CORS_ORIGIN_ALLOW_ALL = True
 # email setup
 # EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
