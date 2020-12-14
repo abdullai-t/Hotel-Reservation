@@ -33,9 +33,7 @@ def guest_registration(request):
     if request.method == "POST":
         serializer = user_creation_serializer(data=request.data)
         data = {}
-        print("before")
         if serializer.is_valid():
-            print("after")
             account = serializer.save()
             profile = Profile(
                 fname=request.data.get("fname"),
