@@ -15,6 +15,7 @@ from Reservation.API.serializers import RoomSerializer, ReservationSerializer, S
 from Reservation.models import Room, Reservation, Service, UserServices, Bill
 import string
 import random
+from django.db.models import Sum
 
 # http://127.0.0.1:8000/api/reservation/initial/
 @api_view(['GET', ])
@@ -395,14 +396,19 @@ def dashboard_view(request):
     services = ServiceSerializer(Service.objects.all(), many=True).data
     rooms = RoomSerializer(Room.objects.all(), many=True).data
     bills = BillSerializer(Bill.objects.all(), many=True).data
-    staff = ProfileSerializer(User.objects.filter(is_staff=True, is_manager=True), many=True).data
+    staff = ProfileSerializer(Profile.objects.filter(user__is_staff=True,user__is_manager=True), many=True).data
+    guests = ProfileSerializer(Profile.objects.filter(user__is_superuser=False, user__is_manager=False, user__is_staff=False), many=True).data
+    earnings = Bill.objects.aggregate(Sum("total_cost"))
+    print(earnings['total_cost__sum'])
     data = {}
     data['guests_count'] = guests_count
     data['room_count'] = room_count
     data['reservation_count'] = reservation_count
+    data['earnings'] = earnings
     data['services'] = services
     data['staff'] = staff
     data['rooms'] = rooms
     data['bills'] = bills
+    data['guests'] = guests
 
     return Response(data)
