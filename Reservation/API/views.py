@@ -399,12 +399,11 @@ def dashboard_view(request):
     staff = ProfileSerializer(Profile.objects.filter(user__is_staff=True,user__is_manager=True), many=True).data
     guests = ProfileSerializer(Profile.objects.filter(user__is_superuser=False, user__is_manager=False, user__is_staff=False), many=True).data
     earnings = Bill.objects.aggregate(Sum("total_cost"))
-    print(earnings['total_cost__sum'])
     data = {}
     data['guests_count'] = guests_count
     data['room_count'] = room_count
     data['reservation_count'] = reservation_count
-    data['earnings'] = earnings
+    data['earnings'] = earnings['total_cost__sum']
     data['services'] = services
     data['staff'] = staff
     data['rooms'] = rooms
