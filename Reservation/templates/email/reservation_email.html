@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+  <h3>Hi {{ fname }},</h3>
+<br>
+  <p>Thanks you for choosing to spend your time in Accra with {{ site_name }}. Here are a few details about your reservation.  </p>
+  <p>Reservation code:  {{ booking_code }} </p>
+  <p>Guest Name: {{ full_name }} </p>
+  <p>Arrival Date: {{ check_in_date }} </p>
+  <p>Departure Date: {{ check_out_date }} </p>
+  <p>Room Type: {{ type }} </p>
+  <p>Address: {{ hotel_address }} </p>
+ <p>We’re committed to addressing any issues that come up during your stay with us.
+     If you have any comments on how we can improve, please respond to this email
+     directly or give us a call at {{ hotel_number }} </p>
+
+
+<p>We hope that you’ll join us again soon.</p>
+<p>{{ site_name }}</p>
+</body>
+</html>

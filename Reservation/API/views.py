@@ -1,3 +1,5 @@
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
 from rest_framework import status
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
@@ -16,6 +18,8 @@ from Reservation.models import Room, Reservation, Service, UserServices, Bill
 import string
 import random
 from django.db.models import Sum
+import requests
+
 
 # http://127.0.0.1:8000/api/reservation/initial/
 @api_view(['GET', ])
@@ -306,17 +310,47 @@ def find_service(item):
     service = Service.objects.get(service_name=item)
     return (service)
 
+
 def code_generator(size=5, chars=string.ascii_uppercase + string.digits):
-   return ''.join(random.choice(chars) for _ in range(size))
+    return ''.join(random.choice(chars) for _ in range(size))
+
+
+def sendEmail(res):
+    msg_html = render_to_string('email/reservation_email.html',
+                                {'fname': res.guest.fname.upper(), 'booking_code': res.booking_code,
+                                 'full_name': res.guest.fname + " " + res.guest.lname,
+                                 'check_in_date': res.check_in_date, 'check_out_date': res.check_out_date,
+                                 "type": res.room.type, "hotel_address": "Cantoments, Accra",
+                                 "site_name": "Luxcom Hotel",
+                                 "hotel_number": "+233550751805"
+                                 })
+    send_mail(
+        'Luxcom Hotel Reservation Notification',
+        "",
+        'luxcomh@gmail.com',
+        [res.guest.email],
+        html_message=msg_html,
+    )
+
+
+def sendSMS(res):
+    msg =f"Hi {res.guest.fname}, Your reservation at Luxcom hotel has been successful. Your reservation code is {res.booking_code} with checkin date {res.check_in_date} and checkout date {res.check_out_date}. Thank you "
+    payload = {"key": "d6fd93747a", "message": msg, "senderid": "Luxcom", "phone": res.guest.phone}
+    url = "https://api.arispatbulk.com/sendmessage.php"
+    requests.get(url, params=payload)
+
 
 def add_reservation(reservation, user):
     guest = Profile.objects.get(user__username=user)
     room = Room.objects.get(pk=reservation["room"])
     serializer = ReservationSerializer(data=reservation)
     if serializer.is_valid():
-        book_code = "LC"+code_generator()
+        book_code = "LC" + code_generator()
         serializer.save(guest=guest, room=room, booking_code=book_code)
-        reservation = Reservation.objects.get(room__pk=reservation["room"], guest__user__username=user, date=serializer.data["date"])
+        reservation = Reservation.objects.get(room__pk=reservation["room"], guest__user__username=user,
+                                              date=serializer.data["date"])
+        sendEmail(reservation)
+        sendSMS(reservation)
         return (reservation, reservation.id)
 
 
@@ -324,7 +358,8 @@ def add_user_service(services, user, reservation_id):
     guest = User.objects.get(username=user)
     reservation = Reservation.objects.get(pk=reservation_id)
     for x in services:
-        UserServices.objects.get_or_create(guest=guest, reservation=reservation, service=find_service(x["service_name"]))
+        UserServices.objects.get_or_create(guest=guest, reservation=reservation,
+                                           service=find_service(x["service_name"]))
     services = UserServices.objects.filter(guest=user, reservation_id=reservation_id)
     return services
 
@@ -354,6 +389,7 @@ class get_Bill(ListAPIView):
     queryset = Bill.objects.all()
     serializer_class = BillSerializer
 
+
 @api_view(["PATCH", ])
 @authentication_classes([TokenAuthentication, ])
 @permission_classes([IsAuthenticated])
@@ -366,12 +402,13 @@ def update_bill(request, id):
                         status=status.HTTP_404_NOT_FOUND)
     serializer = BillSerializer(bill, request.data, partial=True)
     if serializer.is_valid():
-        paid =  True if request.data.get("payment_mode") or bill.is_paid else False
+        paid = True if request.data.get("payment_mode") or bill.is_paid else False
         serializer.save(is_paid=paid)
         data["success"] = "bill successfully updated"
     else:
         data["failure"] = "we could not save this Service info update"
     return Response(data)
+
 
 @api_view(["GET", ])
 @authentication_classes([TokenAuthentication, ])
@@ -396,8 +433,9 @@ def dashboard_view(request):
     services = ServiceSerializer(Service.objects.all(), many=True).data
     rooms = RoomSerializer(Room.objects.all(), many=True).data
     bills = BillSerializer(Bill.objects.all(), many=True).data
-    staff = ProfileSerializer(Profile.objects.filter(user__is_staff=True,user__is_manager=True), many=True).data
-    guests = ProfileSerializer(Profile.objects.filter(user__is_superuser=False, user__is_manager=False, user__is_staff=False), many=True).data
+    staff = ProfileSerializer(Profile.objects.filter(user__is_staff=True, user__is_manager=True), many=True).data
+    guests = ProfileSerializer(
+        Profile.objects.filter(user__is_superuser=False, user__is_manager=False, user__is_staff=False), many=True).data
     earnings = Bill.objects.aggregate(Sum("total_cost"))
     data = {}
     data['guests_count'] = guests_count
