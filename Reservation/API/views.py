@@ -1,4 +1,4 @@
-from django.core.mail import send_mail
+from django.core.mail import send_mail, EmailMessage
 from django.template.loader import render_to_string
 from rest_framework import status
 from rest_framework.authentication import TokenAuthentication
@@ -13,8 +13,8 @@ from rest_framework.status import HTTP_400_BAD_REQUEST
 from Accounts.API.serializers import ProfileSerializer
 from Accounts.models import User, Profile
 from Reservation.API.serializers import RoomSerializer, ReservationSerializer, ServiceSerializer, \
-    UserServicesSerializer, BillSerializer
-from Reservation.models import Room, Reservation, Service, UserServices, Bill
+    UserServicesSerializer, BillSerializer, QueriesSerializer
+from Reservation.models import Room, Reservation, Service, UserServices, Bill, Queries
 import string
 import random
 from django.db.models import Sum
@@ -334,8 +334,26 @@ def sendEmail(res):
 
 
 def sendSMS(res):
-    msg =f"Hi {res.guest.fname}, Your reservation at Luxcom hotel has been successful. Your reservation code is {res.booking_code} with checkin date {res.check_in_date} and checkout date {res.check_out_date}. Thank you "
+    msg = f"Hi {res.guest.fname}, Your reservation at Luxcom hotel has been successful. Your reservation code is {res.booking_code} with checkin date {res.check_in_date} and checkout date {res.check_out_date}. Thank you "
     payload = {"key": "d6fd93747a", "message": msg, "senderid": "Luxcom", "phone": res.guest.phone}
+    url = "https://api.arispatbulk.com/sendmessage.php"
+    requests.get(url, params=payload)
+
+
+# some important functions
+
+def send_generic_email(subject, msg, sender, receiver):
+    email = EmailMessage(
+        subject,
+        msg,
+        sender,
+        [receiver,],
+    )
+    email.send()
+
+
+def send_generic_sms(msg, receiver):
+    payload = {"key": "d6fd93747a", "message": msg, "senderid": "Luxcom", "phone": receiver}
     url = "https://api.arispatbulk.com/sendmessage.php"
     requests.get(url, params=payload)
 
@@ -428,8 +446,8 @@ def my_reservations(request):
 @api_view(['GET', ])
 def dashboard_view(request):
     guests_count = User.objects.filter(is_superuser=False, is_staff=False, is_manager=False).count()
-    room_count = Room.objects.all().count()
-    reservation_count = Reservation.objects.all().count()
+    queries_count = Queries.objects.all().count()
+    reservation_count = Bill.objects.all().count()
     services = ServiceSerializer(Service.objects.all(), many=True).data
     rooms = RoomSerializer(Room.objects.all(), many=True).data
     bills = BillSerializer(Bill.objects.all(), many=True).data
@@ -437,9 +455,11 @@ def dashboard_view(request):
     guests = ProfileSerializer(
         Profile.objects.filter(user__is_superuser=False, user__is_manager=False, user__is_staff=False), many=True).data
     earnings = Bill.objects.aggregate(Sum("total_cost"))
+    queries = QueriesSerializer(Queries.objects.all(), many=True).data
     data = {}
     data['guests_count'] = guests_count
-    data['room_count'] = room_count
+    data['queries_count'] =queries_count
+    data['queries'] = queries
     data['reservation_count'] = reservation_count
     data['earnings'] = earnings['total_cost__sum']
     data['services'] = services
@@ -449,3 +469,97 @@ def dashboard_view(request):
     data['guests'] = guests
 
     return Response(data)
+
+
+@api_view(['DELETE', ])
+@authentication_classes([TokenAuthentication, ])
+@permission_classes([IsAuthenticated])
+def delete_all(request, table):
+    data = {}
+    if table == "RESERVATIONS":
+        delete_operation = Reservation.objects.all().delete()
+        if delete_operation:
+            data["success"] = "successfully deleted"
+        else:
+            data["failure"] = "unable to delete"
+
+    elif table == "ROOMS":
+        delete_operation = Room.objects.all().delete()
+        if delete_operation:
+            data["success"] = "successfully deleted"
+        else:
+            data["failure"] = "unable to delete"
+
+    elif table == "SERVICES":
+        delete_operation = Service.objects.all().delete()
+        if delete_operation:
+            data["success"] = "successfully deleted"
+        else:
+            data["failure"] = "unable to delete"
+
+    elif table == "QUERIES":
+        delete_operation = Queries.objects.all().delete()
+        if delete_operation:
+            data["success"] = "successfully deleted"
+        else:
+            data["failure"] = "unable to delete"
+    else:
+        data["failure"] = "unable to delete because table does not exist "
+
+    return  Response(data)
+
+
+@api_view(['DELETE', ])
+@authentication_classes([TokenAuthentication, ])
+@permission_classes([IsAuthenticated])
+def delete_query(request, id):
+    try:
+        query = Queries.objects.filter(pk=id)
+    except Queries.DoesNotExist:
+        return Response({'error': ' The Query you want to delete does not exist'}, status=status.HTTP_404_NOT_FOUND)
+    data = {}
+    delete_operation = query.delete()
+    if delete_operation:
+        data["success"] = "successfully deleted"
+    else:
+        data["failure"] = "unable to delete"
+    return Response(data=data)
+
+
+@api_view(['POST', ])
+def add_queries(request):
+    email = request.data.get("email")
+    msg = request.data.get("message")
+    subject = request.data.get("type")
+    serializer = QueriesSerializer(data=request.data)
+    data = {}
+    if serializer.is_valid():
+        serializer.save()
+        data["success"] = "Message Successfully sent"
+        send_generic_email(subject=subject, msg=msg, sender=email, receiver="luxcomh@gmail.com")
+    else:
+        data["failure"] = "Unable to send your message please check the form"
+    return Response(data=data)
+
+
+@api_view(['POST', ])
+@authentication_classes([TokenAuthentication, ])
+@permission_classes([IsAuthenticated])
+def send_generic_message(request):
+    msg_type = request.data.get("messageType")
+    data = {}
+    if msg_type == "EMAIL":
+        email = request.data.get("receiver")
+        msg = request.data.get("message")
+        subject = request.data.get("subject")
+        send_generic_email(subject=subject, msg=msg, sender="luxcomh@gmail.com", receiver=email)
+        data["success"] = "email successfully sent"
+
+    elif msg_type == "SMS":
+        reciever = request.data.get("receiver")
+        msg = request.data.get("message")
+        send_generic_sms(msg=msg, receiver=reciever)
+        data["success"]  = "sms successfully sent"
+    else:
+        print("hmmmmm")
+    return  Response(data)

@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'um4or3amnfl-a@pi-)1h_a)mscfvo5q$d49zy%pzq6$k(#w5w2'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
 
@@ -152,5 +152,5 @@ EMAIL_HOST_USER = 'luxcomh@gmail.com'
 EMAIL_HOST_PASSWORD = 'samsung600' #past the key or password app here
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-DEFAULT_FROM_EMAIL = 'luxcomh@gmail.com'
+# DEFAULT_FROM_EMAIL = 'luxcomh@gmail.com'
 django_heroku.settings(locals())

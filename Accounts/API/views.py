@@ -272,3 +272,19 @@ def profile(request):
             data["failure"] = "we could not update your info due to some errors"
 
         return Response(data)
+
+@api_view(['DELETE'])
+@authentication_classes([TokenAuthentication, ])
+@permission_classes([IsAuthenticated])
+def delete_staff(request, email):
+    try:
+        staff = User.objects.get(email=email)
+    except User.DoesNotExist:
+        return Response({'error': ' The Query you want to delete does not exist'}, status=status.HTTP_404_NOT_FOUND)
+    data = {}
+    delete_operation = staff.delete()
+    if delete_operation:
+        data["success"] = "successfully deleted"
+    else:
+        data["failure"] = "unable to delete"
+    return Response(data=data)

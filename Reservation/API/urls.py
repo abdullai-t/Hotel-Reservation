@@ -9,6 +9,8 @@ urlpatterns = [
     # url(r'^add/reservation/$', add_reservation, name="add_reservation"),
     url(r'^create/service/$', create_service, name="create_service"),
     url(r'^chained/data/$', bill, name="bill"),
+    url(r'^add/query/$', add_queries, name="add_queries"),
+    url(r'^send/message/$', send_generic_message, name="send_generic_message"),
 
     # GET REQUESTS
     url(r'^rooms/$', get_rooms.as_view(), name="rooms"),
@@ -31,5 +33,7 @@ urlpatterns = [
     url(r'^delete/service/(?P<name>[\w\s-]+)/$', delete_service, name="delete_service"),
     url(r'^delete/reservation/(?P<id>[\w-]+)/$', delete_reservation, name="delete_reservation"),
     url(r'^delete/user-service/(?P<name>[\w\s-]+)/$', delete_user_service, name="delete_user_service"),
+    url(r'^delete/table/(?P<table>[\w\s-]+)/$', delete_all, name="delete_all"),
+    url(r'^delete/query/(?P<id>[\w-]+)/$', delete_query, name="delete_query"),
 
 ]

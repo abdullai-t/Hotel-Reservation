@@ -57,3 +57,15 @@ class Bill(models.Model):
 
     def __str__(self):
         return self.reservation.guest.user.username
+
+
+class Queries(models.Model):
+    name = models.CharField(max_length=50, null=False, blank=False)
+    email = models.EmailField(max_length =50, null=False, blank=False)
+    contact = models.CharField(max_length =50,null=False, blank=False)
+    type = models.CharField(max_length=50, null=False, blank=False)
+    address = models.CharField(max_length=50, null=False, blank=False)
+    message = models.CharField(max_length=1500,null=False, blank=False)
+
+    def __str__(self):
+        return self.name

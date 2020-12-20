@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from Accounts.API.serializers import user_creation_serializer, ProfileSerializer
-from Reservation.models import Room, Reservation, Bill, Service, UserServices
+from Reservation.models import Room, Reservation, Bill, Service, UserServices, Queries
 
 
 class RoomSerializer(serializers.ModelSerializer):
@@ -36,3 +36,9 @@ class BillSerializer(serializers.ModelSerializer):
     class Meta:
         model = Bill
         fields = ["id","total_cost", "is_paid", "payment_mode", "reservation"]
+
+
+class QueriesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Queries
+        fields = ["id","name", "email", "contact", "message", "type", "address"]
