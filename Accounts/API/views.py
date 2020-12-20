@@ -280,7 +280,7 @@ def delete_staff(request, email):
     try:
         staff = User.objects.get(email=email)
     except User.DoesNotExist:
-        return Response({'error': ' The Query you want to delete does not exist'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'error': 'The Query you want to delete does not exist'}, status=status.HTTP_404_NOT_FOUND)
     data = {}
     delete_operation = staff.delete()
     if delete_operation:
