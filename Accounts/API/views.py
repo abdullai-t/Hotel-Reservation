@@ -276,9 +276,10 @@ def profile(request):
 @api_view(['DELETE'])
 @authentication_classes([TokenAuthentication, ])
 @permission_classes([IsAuthenticated])
-def delete_staff(request, email):
+def delete_staff(request, username):
     try:
-        staff = User.objects.get(email=email)
+        staff = User.objects.get(username=username)
+        print(staff)
     except User.DoesNotExist:
         return Response({'error': 'The Query you want to delete does not exist'}, status=status.HTTP_404_NOT_FOUND)
     data = {}

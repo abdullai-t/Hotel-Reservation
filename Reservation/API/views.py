@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.core.mail import send_mail, EmailMessage
 from django.template.loader import render_to_string
 from rest_framework import status
@@ -451,6 +453,7 @@ def dashboard_view(request):
     services = ServiceSerializer(Service.objects.all(), many=True).data
     rooms = RoomSerializer(Room.objects.all(), many=True).data
     bills = BillSerializer(Bill.objects.all(), many=True).data
+    bills_today =BillSerializer(Bill.objects.filter(reservation__date__day= date.today().day), many=True).data
     staff = ProfileSerializer(Profile.objects.filter(user__is_staff=True, user__is_manager=True), many=True).data
     guests = ProfileSerializer(
         Profile.objects.filter(user__is_superuser=False, user__is_manager=False, user__is_staff=False), many=True).data
@@ -460,6 +463,7 @@ def dashboard_view(request):
     data['guests_count'] = guests_count
     data['queries_count'] =queries_count
     data['queries'] = queries
+    data['bills_today'] = bills_today
     data['reservation_count'] = reservation_count
     data['earnings'] = earnings['total_cost__sum']
     data['services'] = services
