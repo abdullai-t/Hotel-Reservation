@@ -313,7 +313,7 @@ def find_service(item):
     return (service)
 
 
-def code_generator(size=5, chars=string.ascii_uppercase + string.digits):
+def code_generator(size=7, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
 
 
@@ -349,7 +349,7 @@ def send_generic_email(subject, msg, sender, receiver):
         subject,
         msg,
         sender,
-        [receiver,],
+        receiver,
     )
     email.send()
 
@@ -365,7 +365,7 @@ def add_reservation(reservation, user):
     room = Room.objects.get(pk=reservation["room"])
     serializer = ReservationSerializer(data=reservation)
     if serializer.is_valid():
-        book_code = "LC" + code_generator()
+        book_code = "LCH" + code_generator()
         serializer.save(guest=guest, room=room, booking_code=book_code)
         reservation = Reservation.objects.get(room__pk=reservation["room"], guest__user__username=user,
                                               date=serializer.data["date"])
@@ -540,7 +540,7 @@ def add_queries(request):
     if serializer.is_valid():
         serializer.save()
         data["success"] = "Message Successfully sent"
-        send_generic_email(subject=subject, msg=msg, sender=email, receiver="luxcomh@gmail.com")
+        send_generic_email(subject=subject, msg=msg, sender=email, receiver=["luxcomh@gmail.com"])
     else:
         data["failure"] = "Unable to send your message please check the form"
     return Response(data=data)
@@ -560,9 +560,9 @@ def send_generic_message(request):
         data["success"] = "email successfully sent"
 
     elif msg_type == "SMS":
-        reciever = request.data.get("receiver")
+        receiver = request.data.get("receiver")
         msg = request.data.get("message")
-        send_generic_sms(msg=msg, receiver=reciever)
+        send_generic_sms(msg=msg, receiver=receiver)
         data["success"]  = "sms successfully sent"
     else:
         print("hmmmmm")
