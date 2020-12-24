@@ -30,9 +30,11 @@ import requests
 def initial(request):
     data = {}
     rooms = RoomSerializer(Room.objects.all(), many=True)
+    news = NewsSerializer(News.objects.all().order_by("-pk"), many=True)
     services = ServiceSerializer(Service.objects.all(), many=True)
     data["rooms"] = rooms.data
     data["services"] = services.data
+    data["news"] = news.data
     return Response(data)
 
 
