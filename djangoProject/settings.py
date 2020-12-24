@@ -43,7 +43,8 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     # custom Apps
     'Accounts',
-    'Reservation'
+    'Reservation',
+    "News"
 
 ]
 

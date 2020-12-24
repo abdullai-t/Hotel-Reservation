@@ -8,6 +8,7 @@ urlpatterns = [
     url('admin/', admin.site.urls),
     url(r'^api/auth/', include('Accounts.API.urls')),
     url(r'^api/reservation/', include('Reservation.API.urls')),
+    url(r'^api/news/', include('News.API.urls')),
 ]
 urlpatterns+= static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

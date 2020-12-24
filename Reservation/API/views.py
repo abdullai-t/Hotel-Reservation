@@ -14,6 +14,8 @@ from rest_framework.status import HTTP_400_BAD_REQUEST
 
 from Accounts.API.serializers import ProfileSerializer
 from Accounts.models import User, Profile
+from News.API.serializers import NewsSerializer
+from News.models import News
 from Reservation.API.serializers import RoomSerializer, ReservationSerializer, ServiceSerializer, \
     UserServicesSerializer, BillSerializer, QueriesSerializer
 from Reservation.models import Room, Reservation, Service, UserServices, Bill, Queries
@@ -450,15 +452,16 @@ def dashboard_view(request):
     guests_count = User.objects.filter(is_superuser=False, is_staff=False, is_manager=False).count()
     queries_count = Queries.objects.all().count()
     reservation_count = Bill.objects.all().count()
-    services = ServiceSerializer(Service.objects.all(), many=True).data
-    rooms = RoomSerializer(Room.objects.all(), many=True).data
-    bills = BillSerializer(Bill.objects.all(), many=True).data
-    bills_today =BillSerializer(Bill.objects.filter(reservation__date__day= date.today().day), many=True).data
+    services = ServiceSerializer(Service.objects.all().order_by("-pk"), many=True).data
+    rooms = RoomSerializer(Room.objects.all().order_by("-pk"), many=True).data
+    bills = BillSerializer(Bill.objects.all().order_by("-pk"), many=True).data
+    bills_today =BillSerializer(Bill.objects.filter(reservation__date__day= date.today().day).order_by("-pk"), many=True).data
     staff = ProfileSerializer(Profile.objects.filter(user__is_staff=True, user__is_manager=True), many=True).data
     guests = ProfileSerializer(
         Profile.objects.filter(user__is_superuser=False, user__is_manager=False, user__is_staff=False), many=True).data
     earnings = Bill.objects.aggregate(Sum("total_cost"))
-    queries = QueriesSerializer(Queries.objects.all(), many=True).data
+    queries = QueriesSerializer(Queries.objects.all().order_by('-pk'), many=True).data
+    news = NewsSerializer(News.objects.all().order_by('-pk'), many=True).data
     data = {}
     data['guests_count'] = guests_count
     data['queries_count'] =queries_count
@@ -471,6 +474,7 @@ def dashboard_view(request):
     data['rooms'] = rooms
     data['bills'] = bills
     data['guests'] = guests
+    data['news'] = news
 
     return Response(data)
 
@@ -503,6 +507,12 @@ def delete_all(request, table):
 
     elif table == "QUERIES":
         delete_operation = Queries.objects.all().delete()
+        if delete_operation:
+            data["success"] = "successfully deleted"
+        else:
+            data["failure"] = "unable to delete"
+    elif table == "NEWS":
+        delete_operation = News.objects.all().delete()
         if delete_operation:
             data["success"] = "successfully deleted"
         else:
