@@ -30,7 +30,7 @@ class UserManager(auth_models.BaseUserManager):
         user.is_admin = True
         user.is_superuser = True
         user.is_staff = True
-        user.is_vendor = True
+        user.is_manager = True
 
         user.save(using=self._db)
         return user
@@ -40,12 +40,19 @@ class User(auth_models.AbstractBaseUser):
     email = models.EmailField(verbose_name="email", max_length=60, unique=True)
     username = models.CharField(max_length=150, unique=True)
     date_joined = models.DateTimeField(verbose_name='date joined', auto_now_add=True)
-    # last_login = models.DateTimeField(verbose_name='last login', auto_now_add=True)
+    fname = models.CharField(max_length=50,blank=True, null=True)
+    lname = models.CharField(max_length=50,blank=True, null=True)
+    isBlackListed = models.BooleanField(blank=True, null=True, default=False)
+    nationality = models.CharField(max_length=50,blank=True, null=True)
+    homeAddress = models.CharField(max_length=50,blank=True, null=True)
+    phone = models.CharField(max_length=50,blank=True, null=True)
+
     is_admin = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
     is_manager = models.BooleanField(default=False)
+    is_accountant = models.BooleanField(default=False)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
@@ -62,18 +69,15 @@ class User(auth_models.AbstractBaseUser):
     objects = UserManager()
 
 
-class Profile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, blank=True, null=True)
+class Staff(models.Model):
     fname = models.CharField(max_length=50,blank=True, null=True)
     lname = models.CharField(max_length=50,blank=True, null=True)
-    isBlackListed = models.BooleanField(blank=True, null=True, default=False)
-    status = models.CharField(max_length=50,blank=True, null=True)
+    job = models.CharField(max_length=50,blank=True, null=True)
     idNumber = models.CharField(max_length=50,blank=True, null=True)
-    organization = models.CharField(max_length=50,blank=True, null=True)
     nationality = models.CharField(max_length=50,blank=True, null=True)
     email = models.EmailField(max_length=50,blank=True, null=True)
     homeAddress = models.CharField(max_length=50,blank=True, null=True)
     phone = models.CharField(max_length=50,blank=True, null=True)
 
     def __str__(self):
-        return self.user.username
+        return self.fname

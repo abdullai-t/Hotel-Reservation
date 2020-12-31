@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from Accounts.API.serializers import user_creation_serializer, ProfileSerializer
+from Accounts.API.serializers import userSerializer
 from Reservation.models import Room, Reservation, Bill, Service, UserServices, Queries
 
 
@@ -23,7 +23,7 @@ class UserServicesSerializer(serializers.ModelSerializer):
 
 class ReservationSerializer(serializers.ModelSerializer):
     room = RoomSerializer(read_only=True)
-    guest = ProfileSerializer(read_only=True)
+    guest = userSerializer(read_only=True)
     class Meta:
         model = Reservation
         fields = ["id","date", "booking_code","check_in_date", "check_out_date", "number_of_adult", "number_of_children", "cost", "room",

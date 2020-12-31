@@ -1,6 +1,6 @@
 from django.db import models
 
-from Accounts.models import User, Profile
+from Accounts.models import User
 
 
 class Room(models.Model):
@@ -32,10 +32,10 @@ class Reservation(models.Model):
     number_of_children = models.IntegerField(null=False, blank=False)
     cost = models.IntegerField(null=False, blank=False)
     room = models.ForeignKey(Room, on_delete=models.CASCADE, blank=True, null=True)
-    guest = models.ForeignKey(Profile, on_delete=models.CASCADE, blank=True, null=True)
+    guest = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)
 
     def __str__(self):
-        return self.guest.user.username
+        return self.guest.username
 
 
 class UserServices(models.Model):
@@ -56,7 +56,7 @@ class Bill(models.Model):
     staff = models.OneToOneField(User, on_delete=models.CASCADE, blank=True, null=True)
 
     def __str__(self):
-        return self.reservation.guest.user.username
+        return self.reservation.guest.username
 
 
 class Queries(models.Model):

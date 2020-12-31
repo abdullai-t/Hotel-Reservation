@@ -10,11 +10,12 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.contrib.auth import authenticate, login
 
-from Accounts.API.serializers import PasswordRestConfirmSerializer, passwordChangeSerializer, ProfileSerializer
+from Accounts.API.serializers import PasswordRestConfirmSerializer, passwordChangeSerializer, userSerializer, \
+    StaffSerializer
 from Reservation.API.serializers import ReservationSerializer
 from Reservation.models import Reservation
 from Accounts.API.serializers import user_creation_serializer
-from Accounts.models import User, Profile
+from Accounts.models import User, Staff
 from rest_framework.status import (
     HTTP_400_BAD_REQUEST,
     HTTP_404_NOT_FOUND,
@@ -24,7 +25,7 @@ import string
 import random
 
 
-def code_generator(size=4, chars=string.ascii_uppercase + string.digits):
+def code_generator(size=7, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
 
 
@@ -35,18 +36,6 @@ def guest_registration(request):
         data = {}
         if serializer.is_valid():
             account = serializer.save()
-            profile = Profile(
-                fname=request.data.get("fname"),
-                nationality=request.data.get("nationality"),
-                lname=request.data.get("lname"),
-                organization=request.data.get("organization"),
-                email=request.data.get("email"),
-                homeAddress=request.data.get("address"),
-                phone=request.data.get("phone"),
-            )
-            profile.user = account
-            profile.save()
-            serializer = ProfileSerializer(profile)
             token = Token.objects.get(user=account).key
             data['token'] = token
             data["data"] = serializer.data
@@ -67,19 +56,6 @@ def manager_registration(request):
             account.is_manager = True
             account.is_staff = True
             account.save()
-            profile = Profile(
-                fname=request.data.get("fname"),
-                nationality=request.data.get("nationality"),
-                lname=request.data.get("lname"),
-                organization=request.data.get("organization"),
-                email=request.data.get("email"),
-                homeAddress=request.data.get("address"),
-                phone=request.data.get("phone"),
-                idNumber="LCS" + code_generator()
-            )
-            profile.user = account
-            profile.save()
-            serializer = ProfileSerializer(profile)
             token = Token.objects.get(user=account).key
             data['token'] = token
             data["data"] = serializer.data
@@ -87,6 +63,19 @@ def manager_registration(request):
             data = serializer.errors
         return Response(data)
 
+
+@api_view(['POST'])
+def staff_creation(request):
+    if request.method == "POST":
+        serializer = StaffSerializer(data=request.data)
+        data = {}
+        if serializer.is_valid():
+            idNumber = "LCS" + code_generator()
+            serializer.save(idNumber=idNumber)
+            data["data"] = serializer.data
+        else:
+            data = serializer.errors
+        return Response(data)
 
 # ##################################### end of registration ####################################
 @api_view(["POST"])
@@ -103,8 +92,8 @@ def login_view(request):
     else:
         login(request, user)
         data = {}
-        serializer = ProfileSerializer(Profile.objects.get(user=user))
-        reservations = Reservation.objects.filter(guest__user__username=user)
+        serializer = user_creation_serializer(User.objects.get(user=user))
+        reservations = Reservation.objects.filter(guest__username=user)
         token, _ = Token.objects.get_or_create(user=user)
         data['token'] = token.key
         data["data"] = serializer.data
@@ -120,14 +109,14 @@ def admin_login(request):
     if email is None or password is None:
         return Response({'error': 'Please provide both username and password'}, status=HTTP_400_BAD_REQUEST)
     user = authenticate(request, email=email, password=password)
-    if user.is_staff or user.is_admin:
+    if user.is_manager or user.is_accountant:
         data = {}
-        profile = Profile.objects.get(user=user)
-        if not profile:
+        user = User.objects.get(username=user)
+        if not user:
             token = Token.objects.get(user=user).key
             data['token'] = token
         else:
-            serializer = ProfileSerializer(profile)
+            serializer = user_creation_serializer(user)
             data["data"] = serializer.data
             token = Token.objects.get(user=user).key
             data['token'] = token
@@ -253,20 +242,21 @@ def passwordChangeView(request):
 def profile(request):
     if request.method == 'GET':
         data = {}
-        profile = Profile.objects.filter(user=request.user)
-        if profile:
-            serializer = ProfileSerializer(profile, many=True)
+        user = User.objects.filter(username=request.user)
+        if user:
+            serializer = userSerializer(user, many=True)
             data["data"] = serializer.data
         else:
             data["error"] = "the data is invalid"
         return Response(data)
     else:
-        profile = Profile.objects.get(user=request.user)
-        serializer = ProfileSerializer(profile, request.data, partial=True)
+        user = User.objects.get(username=request.user)
+        print(user)
+        serializer = userSerializer(user, request.data, partial=True)
         data = {}
         if serializer.is_valid():
+            print(serializer.errors)
             serializer.save()
-
             data["data"] = serializer.data
         else:
             data["failure"] = "we could not update your info due to some errors"
@@ -278,9 +268,8 @@ def profile(request):
 @permission_classes([IsAuthenticated])
 def delete_staff(request, username):
     try:
-        staff = User.objects.get(username=username)
-        print(staff)
-    except User.DoesNotExist:
+        staff = Staff.objects.filter (fname=username)
+    except Staff.DoesNotExist:
         return Response({'error': 'The Query you want to delete does not exist'}, status=status.HTTP_404_NOT_FOUND)
     data = {}
     delete_operation = staff.delete()

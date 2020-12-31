@@ -12,8 +12,8 @@ from rest_framework.response import Response
 
 from rest_framework.status import HTTP_400_BAD_REQUEST
 
-from Accounts.API.serializers import ProfileSerializer
-from Accounts.models import User, Profile
+from Accounts.API.serializers import user_creation_serializer, StaffSerializer, userSerializer
+from Accounts.models import User, Staff
 from News.API.serializers import NewsSerializer
 from News.models import News
 from Reservation.API.serializers import RoomSerializer, ReservationSerializer, ServiceSerializer, \
@@ -117,25 +117,6 @@ def delete_room(request, name):
         else:
             data["failure"] = "unable to delete room"
         return Response(data=data)
-
-
-# ######################### Reservation requests ########################################################
-# http://127.0.0.1:8000/api/reservation/add/reservation/
-# @api_view(['POST', ])
-# @authentication_classes([TokenAuthentication, ])
-# @permission_classes([IsAuthenticated])
-# def add_reservation(request):
-#     if request.method == "POST":
-#         guest = User.objects.get(username=request.user)
-#         room = Room.objects.get(pk=request.data["room"])
-#         serializer = ReservationSerializer(data=request.data)
-#         data = {}
-#         if serializer.is_valid():
-#             serializer.save(guest=guest, room=room)
-#             data["data"] = serializer.data
-#         else:
-#             data["failure"] = "unable to Add reservation please check the form"
-#         return Response(data)
 
 
 # get all reservations
@@ -272,7 +253,7 @@ def delete_service(request, name):
 @permission_classes([IsAuthenticated])
 def delete_user_service(request, name):
     try:
-        user_service = UserServices.objects.filter(service__service_name=name, guest__username=request.user)
+        user_service = UserServices.objects.filter(service__service_name=name, guest=request.user)
     except UserServices.DoesNotExist:
         return Response({'error': ' The service you want to delete does not exist'}, status=status.HTTP_404_NOT_FOUND)
     data = {}
@@ -299,7 +280,7 @@ class get_user_service(ListAPIView):
 @permission_classes([IsAuthenticated])
 def get_specific_user_service(request):
     try:
-        user_services = UserServices.objects.filter(guest__username=request.user)
+        user_services = UserServices.objects.filter(guest=request.user)
     except UserServices.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
     serializer = UserServicesSerializer(user_services, many=True)
@@ -365,13 +346,13 @@ def send_generic_sms(msg, receiver):
 
 
 def add_reservation(reservation, user):
-    guest = Profile.objects.get(user__username=user)
+    guest = User.objects.get(username=user)
     room = Room.objects.get(pk=reservation["room"])
     serializer = ReservationSerializer(data=reservation)
     if serializer.is_valid():
         book_code = "LCH" + code_generator()
         serializer.save(guest=guest, room=room, booking_code=book_code)
-        reservation = Reservation.objects.get(room__pk=reservation["room"], guest__user__username=user,
+        reservation = Reservation.objects.get(room__pk=reservation["room"], guest__username=user,
                                               date=serializer.data["date"])
         sendEmail(reservation)
         sendSMS(reservation)
@@ -440,7 +421,7 @@ def update_bill(request, id):
 def my_reservations(request):
     data = {}
     try:
-        bill = Bill.objects.filter(reservation__guest__user__username=request.user)
+        bill = Bill.objects.filter(reservation__guest__username=request.user)
     except Bill.DoesNotExist:
         return Response({'error': ' The Bill you want to update does not exist'},
                         status=status.HTTP_404_NOT_FOUND)
@@ -457,16 +438,19 @@ def dashboard_view(request):
     services = ServiceSerializer(Service.objects.all().order_by("-pk"), many=True).data
     rooms = RoomSerializer(Room.objects.all().order_by("-pk"), many=True).data
     bills = BillSerializer(Bill.objects.all().order_by("-pk"), many=True).data
-    bills_today =BillSerializer(Bill.objects.filter(reservation__date__day= date.today().day).order_by("-pk"), many=True).data
-    staff = ProfileSerializer(Profile.objects.filter(user__is_staff=True, user__is_manager=True), many=True).data
-    guests = ProfileSerializer(
-        Profile.objects.filter(user__is_superuser=False, user__is_manager=False, user__is_staff=False), many=True).data
+    bills_today = BillSerializer(Bill.objects.filter(reservation__date__day=date.today().day).order_by("-pk"),
+                                 many=True).data
+    staff = StaffSerializer(Staff.objects.all(), many=True).data
+    guests = userSerializer(
+        User.objects.filter(is_superuser=False, is_manager=False, is_staff=False, is_accountant=False), many=True).data
     earnings = Bill.objects.aggregate(Sum("total_cost"))
     queries = QueriesSerializer(Queries.objects.all().order_by('-pk'), many=True).data
     news = NewsSerializer(News.objects.all().order_by('-pk'), many=True).data
+    admins = userSerializer(
+        User.objects.filter(is_staff=True), many=True).data
     data = {}
     data['guests_count'] = guests_count
-    data['queries_count'] =queries_count
+    data['queries_count'] = queries_count
     data['queries'] = queries
     data['bills_today'] = bills_today
     data['reservation_count'] = reservation_count
@@ -477,6 +461,7 @@ def dashboard_view(request):
     data['bills'] = bills
     data['guests'] = guests
     data['news'] = news
+    data['admins'] = admins
 
     return Response(data)
 
@@ -522,7 +507,7 @@ def delete_all(request, table):
     else:
         data["failure"] = "unable to delete because table does not exist "
 
-    return  Response(data)
+    return Response(data)
 
 
 @api_view(['DELETE', ])
@@ -575,7 +560,7 @@ def send_generic_message(request):
         receiver = request.data.get("receiver")
         msg = request.data.get("message")
         send_generic_sms(msg=msg, receiver=receiver)
-        data["success"]  = "sms successfully sent"
+        data["success"] = "sms successfully sent"
     else:
         print("hmmmmm")
-    return  Response(data)
+    return Response(data)

@@ -9,7 +9,7 @@ from rest_framework.status import (
 
 )
 
-from Accounts.models import User, Profile
+from Accounts.models import User, Staff
 
 
 class user_creation_serializer(serializers.ModelSerializer):
@@ -19,7 +19,7 @@ class user_creation_serializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['email',  'password', 'password2', "username"]
+        fields = ['email',  'password', 'password2',  'is_manager', "fname", "lname", "isBlackListed", "phone", "nationality", "homeAddress", "is_accountant"]
         extra_kwargs = {
             'password': {'write_only': True}
         }
@@ -83,12 +83,12 @@ class passwordChangeSerializer(serializers.Serializer):
                 return Response({'error': 'Please provide both password must match'}, status=HTTP_400_BAD_REQUEST)
             return new_password1
 
-
-
-
-class ProfileSerializer(serializers.ModelSerializer):
-    # user = user_creation_serializer( read_only=True)
+class userSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Profile
-        fields = ('user','fname', 'lname', 'isBlackListed', 'status', 'idNumber', "organization",
-                  'nationality', 'email', 'homeAddress', 'phone')
+        model = User
+        fields = ['email', 'is_manager', "fname", "lname", "isBlackListed", "phone", "nationality", "homeAddress", "is_accountant", "username"]
+
+class StaffSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Staff
+        fields = ['email',  "fname", "lname", "phone", "nationality", "homeAddress", "job", "idNumber"]
