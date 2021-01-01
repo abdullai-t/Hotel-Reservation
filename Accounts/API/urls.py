@@ -1,6 +1,7 @@
 from django.conf.urls import url
 from Accounts.API.views import (guest_registration, manager_registration, PasswordRestView, passwordResetConfirmView,
-                                passwordChangeView, profile, login_view,admin_login,delete_staff, staff_creation)
+                                passwordChangeView, profile, login_view, admin_login, delete_staff, staff_creation,
+                                delete_user)
 
 app_name = 'Accounts'
 
@@ -16,4 +17,5 @@ urlpatterns = [
     url(r'^reset/(?P<uidb64>[\w-]+)/(?P<token>[\w-]+)/$', passwordResetConfirmView, name="password_reset_confirm"),
     url(r'^password/change/$', passwordChangeView, name="password_change"),
     url(r'^delete/staff/(?P<username>[\w-]+)/$', delete_staff, name="delete_staff"),
+    url(r'^delete/user/(?P<username>[\w-]+)/$', delete_user, name="delete_user"),
 ]

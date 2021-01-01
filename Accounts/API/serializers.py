@@ -27,7 +27,12 @@ class user_creation_serializer(serializers.ModelSerializer):
     def save(self):
         account = User(
             email=self.validated_data['email'],
-            username=self.validated_data['username']
+            fname=self.validated_data['fname'],
+            lname=self.validated_data['lname'],
+            phone=self.validated_data['phone'],
+            nationality=self.validated_data['nationality'],
+            homeAddress=self.validated_data['homeAddress'],
+            username=self.validated_data['fname']
         )
         password = self.validated_data['password']
         password2 = self.validated_data['password2']

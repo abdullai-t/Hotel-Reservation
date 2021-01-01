@@ -51,10 +51,16 @@ def manager_registration(request):
     if request.method == "POST":
         serializer = user_creation_serializer(data=request.data)
         data = {}
+        username = request.data.get("fname")
         if serializer.is_valid():
+            type = request.data.get("job")
             account = serializer.save()
-            account.is_manager = True
+            if type == "ACCOUNTANT":
+                account.is_accountant = True
+            else:
+                account.is_manager = True
             account.is_staff = True
+            account.username=username
             account.save()
             token = Token.objects.get(user=account).key
             data['token'] = token
@@ -273,6 +279,22 @@ def delete_staff(request, username):
         return Response({'error': 'The Query you want to delete does not exist'}, status=status.HTTP_404_NOT_FOUND)
     data = {}
     delete_operation = staff.delete()
+    if delete_operation:
+        data["success"] = "successfully deleted"
+    else:
+        data["failure"] = "unable to delete"
+    return Response(data=data)
+
+@api_view(['DELETE'])
+@authentication_classes([TokenAuthentication, ])
+@permission_classes([IsAuthenticated])
+def delete_user(request, username):
+    try:
+        user = User.objects.filter(username=username)
+    except User.DoesNotExist:
+        return Response({'error': 'The Query you want to delete does not exist'}, status=status.HTTP_404_NOT_FOUND)
+    data = {}
+    delete_operation = user.delete()
     if delete_operation:
         data["success"] = "successfully deleted"
     else:
