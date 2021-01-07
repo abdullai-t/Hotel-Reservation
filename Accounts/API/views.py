@@ -98,7 +98,7 @@ def login_view(request):
     else:
         login(request, user)
         data = {}
-        serializer = user_creation_serializer(User.objects.get(user=user))
+        serializer = user_creation_serializer(User.objects.get(username=user))
         reservations = Reservation.objects.filter(guest__username=user)
         token, _ = Token.objects.get_or_create(user=user)
         data['token'] = token.key
@@ -261,7 +261,6 @@ def profile(request):
         serializer = userSerializer(user, request.data, partial=True)
         data = {}
         if serializer.is_valid():
-            print(serializer.errors)
             serializer.save()
             data["data"] = serializer.data
         else:

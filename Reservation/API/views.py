@@ -369,6 +369,7 @@ def add_user_service(services, user, reservation_id):
     return services
 
 
+# -------------------------------- Real payment----------------
 # --------------------------------------------------------------
 @api_view(['POST', ])
 @authentication_classes([TokenAuthentication, ])
@@ -381,7 +382,8 @@ def bill(request):
     serializer = BillSerializer(data=request.data)
     data = {}
     if serializer.is_valid():
-        serializer.save(reservation=my_reservation)
+        paid = True if request.data.get("payment_mode") else False
+        serializer.save(reservation=my_reservation, is_paid=paid)
         data["reservationID"] = serializer.data["id"]
         return Response(data)
 
