@@ -1,3 +1,7 @@
+import random
+import string
+
+from django.contrib.auth import authenticate, login
 from django.core.mail import send_mail
 from django.core.validators import validate_email
 from django.template.loader import render_to_string
@@ -8,21 +12,18 @@ from rest_framework.authtoken.models import Token
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from django.contrib.auth import authenticate, login
-
-from Accounts.API.serializers import PasswordRestConfirmSerializer, passwordChangeSerializer, userSerializer, \
-    StaffSerializer
-from Reservation.API.serializers import ReservationSerializer
-from Reservation.models import Reservation
-from Accounts.API.serializers import user_creation_serializer
-from Accounts.models import User, Staff
 from rest_framework.status import (
     HTTP_400_BAD_REQUEST,
     HTTP_404_NOT_FOUND,
     HTTP_200_OK
 )
-import string
-import random
+
+from Accounts.API.serializers import PasswordRestConfirmSerializer, passwordChangeSerializer, userSerializer, \
+    StaffSerializer
+from Accounts.API.serializers import user_creation_serializer
+from Accounts.models import User, Staff
+from Reservation.API.serializers import ReservationSerializer
+from Reservation.models import Reservation
 
 
 def code_generator(size=7, chars=string.ascii_uppercase + string.digits):
@@ -299,3 +300,13 @@ def delete_user(request, username):
     else:
         data["failure"] = "unable to delete"
     return Response(data=data)
+
+
+#  helper functions
+
+def admin_create_user_for_booking_hostel(data):
+    serializer = user_creation_serializer(data=data)
+    if serializer.is_valid():
+        serializer.save()
+        user = User.objects.get(username=data['fname'])
+        return user

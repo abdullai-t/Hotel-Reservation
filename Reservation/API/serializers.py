@@ -32,7 +32,6 @@ class ReservationSerializer(serializers.ModelSerializer):
 
 class BillSerializer(serializers.ModelSerializer):
     reservation = ReservationSerializer(read_only=True)
-
     class Meta:
         model = Bill
         fields = ["id","total_cost", "is_paid", "payment_mode", "reservation"]

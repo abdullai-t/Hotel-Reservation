@@ -11,8 +11,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from rest_framework.status import HTTP_400_BAD_REQUEST
-
+from rest_framework.authtoken.models import Token
 from Accounts.API.serializers import user_creation_serializer, StaffSerializer, userSerializer
+from Accounts.API.views import admin_create_user_for_booking_hostel
 from Accounts.models import User, Staff
 from News.API.serializers import NewsSerializer
 from News.models import News
@@ -356,7 +357,9 @@ def add_reservation(reservation, user):
                                               date=serializer.data["date"])
         sendEmail(reservation)
         sendSMS(reservation)
-        return (reservation, reservation.id)
+        return (reservation)
+    else:
+        print(serializer.errors)
 
 
 def add_user_service(services, user, reservation_id):
@@ -375,21 +378,52 @@ def add_user_service(services, user, reservation_id):
 @authentication_classes([TokenAuthentication, ])
 @permission_classes([IsAuthenticated])
 def bill(request):
-    services = request.data["serviceObj"]
     reservation = request.data["reservationObj"]
-    my_reservation, id = add_reservation(reservation, request.user)
-    add_user_service(services, request.user, id)
-    serializer = BillSerializer(data=request.data)
-    data = {}
-    if serializer.is_valid():
-        paid = True if request.data.get("payment_mode") else False
-        serializer.save(reservation=my_reservation, is_paid=paid)
-        data["reservationID"] = serializer.data["id"]
-        return Response(data)
+    is_admin_create = request.data["is_admin_create"]
+    if is_admin_create is True:
+        info = {
+            "fname": request.data["username"],
+            "lname":"",
+            "nationality":"",
+            "homeAddress":"",
+            "phone": request.data["phone"],
+            "email": request.data["email"],
+            "password": "luxcomhotel",
+            "password2": "luxcomhotel"
+        }
+        user = admin_create_user_for_booking_hostel(info)
+        msg = f"Hi {user.username},\n\n Here are your Luxcom Hotel Login Credentials. \n email: {user.email} \n password:luxcomhotel \n\n. Thank you "
+        send_generic_email(subject="User Credentials", msg=msg, receiver=[user.email], sender="luxcomh@gmail.com")
+        my_reservation = add_reservation(reservation, user)
+        serializer = BillSerializer(data=request.data)
+        data = {}
+        if serializer.is_valid():
+            paid = True if request.data.get("payment_mode") else False
+            serializer.save(reservation=my_reservation, is_paid=paid)
+            data["reservationID"] = serializer.data["id"]
+            data["token"] = Token.objects.get(user=user).key
+            return Response(data)
+
+        else:
+            print(serializer.errors)
+            return Response({"Failure": "form invalid"})
+
 
     else:
-        print(serializer.errors)
-        return Response({"Failure": "form invalid"})
+        services = request.data["serviceObj"]
+        my_reservation = add_reservation(reservation, request.user)
+        add_user_service(services, request.user, id)
+        serializer = BillSerializer(data=request.data)
+        data = {}
+        if serializer.is_valid():
+            paid = True if request.data.get("payment_mode") else False
+            serializer.save(reservation=my_reservation, is_paid=paid)
+            data["reservationID"] = serializer.data["id"]
+            return Response(data)
+
+        else:
+            print(serializer.errors)
+            return Response({"Failure": "form invalid"})
 
 
 class get_Bill(ListAPIView):
@@ -445,7 +479,7 @@ def dashboard_view(request):
     staff = StaffSerializer(Staff.objects.all(), many=True).data
     guests = userSerializer(
         User.objects.filter(is_superuser=False, is_manager=False, is_staff=False, is_accountant=False), many=True).data
-    earnings = Bill.objects.aggregate(Sum("total_cost"))
+    earnings = Bill.objects.filter(is_paid=True).aggregate(Sum("total_cost"))
     queries = QueriesSerializer(Queries.objects.all().order_by('-pk'), many=True).data
     news = NewsSerializer(News.objects.all().order_by('-pk'), many=True).data
     admins = userSerializer(
