@@ -1,29 +1,31 @@
+import random
+import string
 from datetime import date
 
+import requests
 from django.core.mail import send_mail, EmailMessage
+from django.db.models import Sum, Count
 from django.template.loader import render_to_string
 from rest_framework import status
 from rest_framework.authentication import TokenAuthentication
+from rest_framework.authtoken.models import Token
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-
 from rest_framework.status import HTTP_400_BAD_REQUEST
-from rest_framework.authtoken.models import Token
-from Accounts.API.serializers import user_creation_serializer, StaffSerializer, userSerializer
+
+from Accounts.API.serializers import StaffSerializer, userSerializer
 from Accounts.API.views import admin_create_user_for_booking_hostel
 from Accounts.models import User, Staff
 from News.API.serializers import NewsSerializer
 from News.models import News
 from Reservation.API.serializers import RoomSerializer, ReservationSerializer, ServiceSerializer, \
-    UserServicesSerializer, BillSerializer, QueriesSerializer
+    UserServicesSerializer, BillSerializer, QueriesSerializer, MonthlyBookingSerializer
 from Reservation.models import Room, Reservation, Service, UserServices, Bill, Queries
-import string
-import random
-from django.db.models import Sum
-import requests
+
+from django.db.models.functions import ExtractMonth
 
 
 # http://127.0.0.1:8000/api/reservation/initial/
@@ -383,9 +385,9 @@ def bill(request):
     if is_admin_create is True:
         info = {
             "fname": request.data["username"],
-            "lname":"",
-            "nationality":"",
-            "homeAddress":"",
+            "lname": "",
+            "nationality": "",
+            "homeAddress": "",
             "phone": request.data["phone"],
             "email": request.data["email"],
             "password": "luxcomhotel",
@@ -465,6 +467,22 @@ def my_reservations(request):
     data["reservations"] = serializer.data
     return Response(data)
 
+# ----------------------- full dashbaord helper functions ----------------------
+def get_montly_bookings():
+    queryset = Bill.objects.filter(reservation__date__year=date.today().year) \
+        .annotate(month=ExtractMonth('reservation__date')) \
+        .values('month') \
+        .annotate(count=Count("id")) \
+        .order_by('-month')
+    monthly_bookings =MonthlyBookingSerializer(queryset, many=True).data
+
+    return  monthly_bookings
+
+def get_paid_unpaid_ratio():
+    paid = Bill.objects.filter(is_paid=True).count()
+    unpaid = Bill.objects.filter(is_paid=False).count()
+
+    return [paid, unpaid]
 
 @api_view(['GET', ])
 def dashboard_view(request):
@@ -492,6 +510,8 @@ def dashboard_view(request):
     data['reservation_count'] = reservation_count
     data['earnings'] = earnings['total_cost__sum']
     data['services'] = services
+    data["monthly_bookings"] = get_montly_bookings()
+    data["ratio"] = get_paid_unpaid_ratio()
     data['staff'] = staff
     data['rooms'] = rooms
     data['bills'] = bills

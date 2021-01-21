@@ -41,3 +41,7 @@ class QueriesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Queries
         fields = ["id","name", "email", "contact", "message", "type", "address"]
+
+class MonthlyBookingSerializer(serializers.Serializer):
+    count = serializers.IntegerField()
+    month = serializers.CharField(max_length=200)
