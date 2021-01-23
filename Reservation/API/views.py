@@ -467,6 +467,7 @@ def my_reservations(request):
     data["reservations"] = serializer.data
     return Response(data)
 
+
 # ----------------------- full dashbaord helper functions ----------------------
 def get_montly_bookings():
     queryset = Bill.objects.filter(reservation__date__year=date.today().year) \
@@ -474,15 +475,17 @@ def get_montly_bookings():
         .values('month') \
         .annotate(count=Count("id")) \
         .order_by('-month')
-    monthly_bookings =MonthlyBookingSerializer(queryset, many=True).data
+    monthly_bookings = MonthlyBookingSerializer(queryset, many=True).data
 
-    return  monthly_bookings
+    return monthly_bookings
+
 
 def get_paid_unpaid_ratio():
     paid = Bill.objects.filter(is_paid=True).count()
     unpaid = Bill.objects.filter(is_paid=False).count()
 
     return [paid, unpaid]
+
 
 @api_view(['GET', ])
 def dashboard_view(request):
@@ -619,4 +622,38 @@ def send_generic_message(request):
         data["success"] = "sms successfully sent"
     else:
         print("hmmmmm")
+    return Response(data)
+
+
+@api_view(['GET', "POST", ])
+@authentication_classes([TokenAuthentication, ])
+@permission_classes([IsAuthenticated])
+def get_reports(request):
+    year = request.data.get("year")
+    req_type = request.data.get("type")
+    month = request.data.get("month")
+    print(req_type, year, month)
+    total_earning = Bill.objects.filter(is_paid=True).aggregate(Sum("total_cost"))
+    data = {}
+    data["total_earning"] = total_earning['total_cost__sum']
+    if req_type == "MONTHLY":
+        paid = Bill.objects.filter(is_paid=True, reservation__date__month=month, reservation__date__year=year).count()
+        unpaid = Bill.objects.filter(is_paid=False, reservation__date__month=month,
+                                     reservation__date__year=year).count()
+        period_earnings = Bill.objects.filter(is_paid=True, reservation__date__month=month,
+                                              reservation__date__year=year).aggregate(Sum("total_cost"))
+        data["period_earnings"] = period_earnings['total_cost__sum']
+        data["paid"] = paid
+        data["unpaid"] = unpaid
+
+    elif req_type == "YEARLY":
+        paid = Bill.objects.filter(is_paid=True, reservation__date__year=year).count()
+        unpaid = Bill.objects.filter(is_paid=False, reservation__date__year=year).count()
+        period_earnings = Bill.objects.filter(is_paid=True, reservation__date__year=year).aggregate(Sum("total_cost"))
+        data["period_earnings"] = period_earnings['total_cost__sum']
+        data["paid"] = paid
+        data["unpaid"] = unpaid
+    else:
+        data["error"] = "Invalid Report type please check and try again"
+    print(data)
     return Response(data)

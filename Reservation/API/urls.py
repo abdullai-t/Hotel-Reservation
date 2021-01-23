@@ -17,6 +17,7 @@ urlpatterns = [
     url(r'^my/reservations/$', my_reservations, name="my_reservations"),
     # url(r'^bills/$', get_Bill.as_view(), name="bills"),
     url(r'^initial/$', initial, name="initial"),
+    url(r'^fetch-reports/$', get_reports, name="get_reports"),
     # url(r'^reservations/$', get_reservations.as_view(), name="get_reservations"),
     url(r'^dashboard/$', dashboard_view, name="dashboard_view"),
     url(r'^user-services/$', get_user_service.as_view(), name="get_user_service"),
